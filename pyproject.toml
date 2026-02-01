@@ -38,4 +38,3 @@ cmake.targets = ["gs2compiler_py"]
 wheel.py-api = "py3"
 wheel.install-dir = "gs2compiler"
 wheel.packages = ["bindings/python/gs2compiler"]
-install.components = ["gs2compiler_py"]

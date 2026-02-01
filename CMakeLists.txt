@@ -122,6 +122,7 @@ if(BUILD_PYTHON)
     target_link_libraries(gs2compiler_py PRIVATE fmt::fmt)
     set_target_properties(gs2compiler_py PROPERTIES
         OUTPUT_NAME gs2compiler
+        LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/gs2compiler
     )
-    install(TARGETS gs2compiler_py LIBRARY DESTINATION gs2compiler)
+    install(TARGETS gs2compiler_py LIBRARY DESTINATION .)
 endif()
