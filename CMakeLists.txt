@@ -37,19 +37,45 @@ if(WIN32)
 	if(NOT WIN_FLEX OR NOT WIN_BISON)
 		message(FATAL_ERROR "Windows builds require win_flex and win_bison. Install with: choco install winflexbison")
 	endif()
-	find_package(BISON)
-	find_package(FLEX)
+	# Set executables directly, then run bison/flex commands manually
 	set(BISON_EXECUTABLE ${WIN_BISON})
 	set(FLEX_EXECUTABLE ${WIN_FLEX})
 	set(FLEX_FLAGS "--wincompat")
+
+	# Manually run bison and flex since FindBison/FindFLEX might not be available
+	# Generate parser
+	execute_process(
+		COMMAND ${WIN_BISON} -d ${CMAKE_CURRENT_SOURCE_DIR}/generator/gs2parser.y
+		-Wno-all
+		OUTPUT_FILE ${CMAKE_CURRENT_BINARY_DIR}/gs2parser.tab.cc
+		ERROR_VARIABLE BISON_ERROR
+	)
+	execute_process(
+		COMMAND ${CMAKE_COMMAND} -E copy_if_different
+		${CMAKE_CURRENT_BINARY_DIR}/gs2parser.tab.hh
+		${CMAKE_CURRENT_BINARY_DIR}/gs2parser.tab.h
+	)
+
+	# Generate scanner
+	execute_process(
+		COMMAND ${WIN_FLEX} --wincompat
+		-o${CMAKE_CURRENT_BINARY_DIR}/lex.yy.cc
+		--header-file=${CMAKE_CURRENT_BINARY_DIR}/lex.yy.h
+		${CMAKE_CURRENT_SOURCE_DIR}/generator/gs2scanner.l
+	)
+
+	# Set source files for Windows
+	set(BISON_GS2Parser_INPUT ${CMAKE_CURRENT_SOURCE_DIR}/generator/gs2parser.y)
+	set(FLEX_GS2Scanner_INPUT ${CMAKE_CURRENT_SOURCE_DIR}/generator/gs2scanner.l)
+	set(BISON_GS2Parser_OUTPUTS ${CMAKE_CURRENT_BINARY_DIR}/gs2parser.tab.cc ${CMAKE_CURRENT_BINARY_DIR}/gs2parser.tab.h)
+	set(FLEX_GS2Scanner_OUTPUTS ${CMAKE_CURRENT_BINARY_DIR}/lex.yy.cc ${CMAKE_CURRENT_BINARY_DIR}/lex.yy.h)
 else()
 	find_package(BISON 3.0 REQUIRED)
 	find_package(FLEX REQUIRED)
+	BISON_TARGET(GS2Parser generator/gs2parser.y ${CMAKE_CURRENT_BINARY_DIR}/gs2parser.tab.cc)
+	FLEX_TARGET(GS2Scanner generator/gs2scanner.l ${CMAKE_CURRENT_BINARY_DIR}/lex.yy.cc DEFINES_FILE ${CMAKE_CURRENT_BINARY_DIR}/lex.yy.h COMPILE_FLAGS "${FLEX_FLAGS}")
+	ADD_FLEX_BISON_DEPENDENCY(GS2Scanner GS2Parser)
 endif()
-
-BISON_TARGET(GS2Parser generator/gs2parser.y ${CMAKE_CURRENT_BINARY_DIR}/gs2parser.tab.cc)
-FLEX_TARGET(GS2Scanner generator/gs2scanner.l ${CMAKE_CURRENT_BINARY_DIR}/lex.yy.cc DEFINES_FILE ${CMAKE_CURRENT_BINARY_DIR}/lex.yy.h COMPILE_FLAGS "${FLEX_FLAGS}")
-ADD_FLEX_BISON_DEPENDENCY(GS2Scanner GS2Parser)
 
 include_directories(
 	${CMAKE_CURRENT_BINARY_DIR}
