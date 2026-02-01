@@ -6,7 +6,7 @@ set(CMAKE_DEBUG_POSTFIX _d)
 set(BIN_DIR "bin" CACHE STRING "Binary output directory")
 
 # specify the C++ standard
-set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
@@ -37,7 +37,7 @@ if(WIN32 AND NOT MINGW)
 	set(FLEX_FLAGS "--wincompat")
 endif(WIN32 AND NOT MINGW)
 
-find_package(BISON 3.4 REQUIRED)
+find_package(BISON 3.0 REQUIRED)
 find_package(FLEX REQUIRED)
 
 BISON_TARGET(GS2Parser generator/gs2parser.y ${CMAKE_CURRENT_BINARY_DIR}/gs2parser.tab.cc)
@@ -102,8 +102,8 @@ if(WIN32 AND MINGW)
 	target_compile_options(gs2compiler PRIVATE "-fno-rtti")
 endif()
 
-set_property(TARGET gs2test PROPERTY CXX_STANDARD 23)
-set_property(TARGET gs2compiler PROPERTY CXX_STANDARD 23)
+set_property(TARGET gs2test PROPERTY CXX_STANDARD 20)
+set_property(TARGET gs2compiler PROPERTY CXX_STANDARD 20)
 
 target_link_libraries(gs2test fmt::fmt)
 target_link_libraries(gs2compiler fmt::fmt)
@@ -113,3 +113,15 @@ set(GS2COMPILER_INCLUDE_DIRECTORY
 	"${PROJECT_BINARY_DIR}/include"
 	"${PROJECT_SOURCE_DIR}/src"
 	PARENT_SCOPE)
+
+# Python bindings with pybind11
+option(BUILD_PYTHON "Build Python bindings" OFF)
+if(BUILD_PYTHON)
+    find_package(pybind11 CONFIG REQUIRED)
+    pybind11_add_module(gs2compiler_py bindings/python/module.cpp ${SOURCES_ALL})
+    target_link_libraries(gs2compiler_py PRIVATE fmt::fmt)
+    set_target_properties(gs2compiler_py PROPERTIES
+        OUTPUT_NAME gs2compiler
+    )
+    install(TARGETS gs2compiler_py LIBRARY DESTINATION gs2compiler)
+endif()

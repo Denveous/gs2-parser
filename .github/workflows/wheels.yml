@@ -1,0 +1,83 @@
+name: Build Wheels
+
+on:
+  push:
+    branches: [main, master]
+    tags:
+      - 'v*'
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+  release:
+    types: [published]
+
+jobs:
+  build_wheels:
+    name: Build wheels on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Build wheels
+        uses: pypa/cibuildwheel@v2.21.3
+        env:
+          CIBW_BUILD: cp38-* cp39-* cp310-* cp311-* cp312-* cp313-*
+          CIBW_SKIP: "*-musllinux_* *-win32 *-manylinux_i686"
+          CIBW_ARCHS: auto64
+          CIBW_BUILD_VERBOSITY: 2
+          CIBW_BEFORE_ALL_LINUX: yum install -y bison flex
+          CIBW_BEFORE_ALL_MACOS: brew install bison flex
+          CIBW_BEFORE_BUILD: pip install pybind11
+          CIBW_CONFIGURE_SETTINGS: CMake.args="-DBUILD_PYTHON=ON"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wheels-${{ matrix.os }}
+          path: ./wheelhouse/*.whl
+
+  publish:
+    name: Publish to PyPI
+    needs: [build_wheels]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release' && github.event.action == 'published'
+    permissions:
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download ubuntu wheels
+        uses: actions/download-artifact@v4
+        with:
+          name: wheels-ubuntu-latest
+          path: dist
+
+      - name: Download windows wheels
+        uses: actions/download-artifact@v4
+        with:
+          name: wheels-windows-latest
+          path: dist
+
+      - name: Download macos wheels
+        uses: actions/download-artifact@v4
+        with:
+          name: wheels-macos-latest
+          path: dist
+
+      - name: List wheels
+        run: ls -R dist
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist
