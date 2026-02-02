@@ -1,9 +1,14 @@
-%option nounput noyywrap 8bit nounistd
+%option nounput noyywrap 8bit
 %option reentrant bison-bridge bison-locations
 %option extra-type="class ParserContext *"
 
 %top{
 #include <cstdint>
+#ifdef _WIN32
+#include <io.h>
+#define isatty _isatty
+#define fileno _fileno
+#endif
 }
 
 %{
