@@ -18,7 +18,7 @@ extern "C" {
 		return new GS2Context();
 	}
 
-	DLL_EXPORT Response compile_code(void *context, const char *code, const char *type, const char *name) {
+	DLL_EXPORT Response compile_code(void *context, const char *code, const char *type, const char *name, bool with_header) {
 		Response result{};
 		result.Success = false;
 
@@ -27,7 +27,7 @@ extern "C" {
 		if (gs2Context != nullptr) {
 			std::string script = code;
 			std::string errMsg;
-			auto response = gs2Context->compile(script, type, name, true);
+			auto response = with_header ? gs2Context->compile(script, type, name, true) : gs2Context->compile(script);
 
 			if (!response.errors.empty()) {
 				errMsg.clear();

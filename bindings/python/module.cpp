@@ -11,7 +11,7 @@ extern "C" {
     };
 
     void *get_context();
-    Response compile_code(void *context, const char *code, const char *type, const char *name);
+    Response compile_code(void *context, const char *code, const char *type, const char *name, bool with_header);
     void delete_context(void *context);
 }
 
@@ -30,12 +30,12 @@ PYBIND11_MODULE(gs2compiler, m) {
             }
         );
 
-    m.def("compile", [](const std::string& script, const std::string& type, const std::string& name) {
+    m.def("compile", [](const std::string& script, const std::string& type, const std::string& name, bool with_header) {
         void* ctx = get_context();
-        Response response = compile_code(ctx, script.c_str(), type.c_str(), name.c_str());
+        Response response = compile_code(ctx, script.c_str(), type.c_str(), name.c_str(), with_header);
         delete_context(ctx);
         return response;
-    }, py::arg("script"), py::arg("type") = "weapon", py::arg("name") = "npc",
+    }, py::arg("script"), py::arg("type") = "weapon", py::arg("name") = "npc", py::arg("with_header") = false,
     R"pbdoc(
     Compile GS2 script to bytecode.
 
@@ -43,6 +43,7 @@ PYBIND11_MODULE(gs2compiler, m) {
         script: GS2 source code
         type: Script type (weapon/npc/default)
         name: Script name
+        with_header: Include Graal file header (default: false, use true for .gs2bc files)
 
     Returns:
         CompilerResponse with Success flag and ByteCode bytes
@@ -50,12 +51,12 @@ PYBIND11_MODULE(gs2compiler, m) {
 
     m.def("compile_script", [](const std::string& script) {
         void* ctx = get_context();
-        Response response = compile_code(ctx, script.c_str(), "weapon", "npc");
+        Response response = compile_code(ctx, script.c_str(), "weapon", "npc", false);
         delete_context(ctx);
         return response;
     }, py::arg("script"),
     R"pbdoc(
-    Simple GS2 compilation shortcut.
+    Simple GS2 compilation shortcut (raw bytecode, no header).
 
     Args:
         script: GS2 source code
