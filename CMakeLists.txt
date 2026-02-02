@@ -87,6 +87,10 @@ if(WIN32)
         add_custom_command(
           OUTPUT ${LEX_CC} ${LEX_H}
           COMMAND "${FLEX_EXECUTABLE}" ${FLEX_FLAGS} "-o${LEX_CC}" "--header-file=${LEX_H}" "${SCANNER_L}"
+          COMMAND "${CMAKE_COMMAND}" "-DCR=1" "-E" "copy" "NUL" "patch_marker.txt"
+          COMMAND "cmd" "/c" "echo #ifdef _WIN32 > unistd_patch.h && echo #include \<io.h\> >> unistd_patch.h && echo define isatty _isatty >> unistd_patch.h && echo define fileno _fileno >> unistd_patch.h && echo #else >> unistd_patch.h && echo #include \<unistd.h\> >> unistd_patch.h && echo #endif >> unistd_patch.h"
+          COMMAND "powershell" "-Command" "(Get-Content ${LEX_CC}) -replace '#include <unistd.h>', '#include \"unistd_patch.h\"' | Set-Content ${LEX_CC}"
+          COMMAND "powershell" "-Command" "(Get-Content ${LEX_H}) -replace '#include <unistd.h>', '#include \"unistd_patch.h\"' | Set-Content ${LEX_H}"
           DEPENDS ${SCANNER_L}
           WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
           COMMENT "Generating scanner from ${SCANNER_L}"
@@ -95,6 +99,8 @@ if(WIN32)
         add_custom_command(
           OUTPUT ${LEX_CC} ${LEX_H}
           COMMAND "${FLEX_EXECUTABLE}" "-o" "${LEX_CC}" "--header-file=${LEX_H}" "${SCANNER_L}"
+          COMMAND "powershell" "-Command" "(Get-Content ${LEX_CC}) -replace '#include <unistd.h>', '#ifdef _WIN32${NewLine}#include <io.h>${NewLine}#define isatty _isatty${NewLine}#define fileno _fileno${NewLine}#else${NewLine}#include <unistd.h>${NewLine}#endif' | Set-Content ${LEX_CC}"
+          COMMAND "powershell" "-Command" "(Get-Content ${LEX_H}) -replace '#include <unistd.h>', '#ifdef _WIN32${NewLine}#include <io.h>${NewLine}#define isatty _isatty${NewLine}#define fileno _fileno${NewLine}#else${NewLine}#include <unistd.h>${NewLine}#endif' | Set-Content ${LEX_H}"
           DEPENDS ${SCANNER_L}
           WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
           COMMENT "Generating scanner from ${SCANNER_L}"

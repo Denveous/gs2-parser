@@ -4,11 +4,6 @@
 
 %top{
 #include <cstdint>
-#ifdef _WIN32
-#include <io.h>
-#define isatty _isatty
-#define fileno _fileno
-#endif
 }
 
 %{
