@@ -69,10 +69,10 @@ if(WIN32)
     # Generate parser: produce .cc and (if produced) .hh, then copy .hh -> .h if present
     add_custom_command(
       OUTPUT ${PARSER_CC} ${PARSER_H}
-      COMMAND ${CMAKE_COMMAND} -E env ${BISON_EXECUTABLE} -d -o ${PARSER_CC} ${PARSER_Y}
+      COMMAND "${BISON_EXECUTABLE}" "-d" "-o" "${PARSER_CC}" "${PARSER_Y}"
       # conditional copy on Windows using cmd; if hh was produced copy to .h
-      COMMAND ${CMAKE_COMMAND} -E echo "Running win_bison..."
-      COMMAND cmd /c "if exist \"${PARSER_HH}\" copy /Y \"${PARSER_HH}\" \"${PARSER_H}\" >nul 2>&1 || echo No .hh produced, skipping copy."
+      COMMAND "${CMAKE_COMMAND}" "-E" "echo" "Running bison..."
+      COMMAND "cmd" "/c" "if exist \"${PARSER_HH}\" copy /Y \"${PARSER_HH}\" \"${PARSER_H}\" >nul 2>&1 || echo No .hh produced, skipping copy."
       DEPENDS ${PARSER_Y}
       WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
       COMMENT "Generating parser from ${PARSER_Y}"
