@@ -32,8 +32,17 @@ endif()
 
 # Windows: use win_flex/win_bison from chocolatey (do NOT build winflexbison submodule)
 if(WIN32)
-    find_program(WIN_FLEX win_flex)
-    find_program(WIN_BISON win_bison)
+    # Try MSYS2 bison/flex first (newer versions), then fall back to winflexbison
+    find_program(WIN_FLEX flex PATHS "C:/msys64/usr/bin" "C:/msys64/mingw64/bin" NO_DEFAULT_PATH)
+    find_program(WIN_BISON bison PATHS "C:/msys64/usr/bin" "C:/msys64/mingw64/bin" NO_DEFAULT_PATH)
+
+    # If not found in MSYS2, try winflexbison names (chocolatey)
+    if(NOT WIN_FLEX)
+        find_program(WIN_FLEX win_flex)
+    endif()
+    if(NOT WIN_BISON)
+        find_program(WIN_BISON win_bison)
+    endif()
 
     # fallback to a bundled win_bison/win_flex if present in dependencies
     if(NOT WIN_BISON AND EXISTS "${PROJECT_SOURCE_DIR}/dependencies/winflexbison/build/win_bison.exe")
