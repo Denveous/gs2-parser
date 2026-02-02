@@ -20,4 +20,4 @@ except ImportError:
     )
 
 __all__ = ["compile", "compile_script", "CompilerResponse"]
-__version__ = "1.1.0"
+__version__ = "1.1.4"
