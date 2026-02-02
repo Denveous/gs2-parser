@@ -1,4 +1,4 @@
-%require "2.7"
+%require "3.0"
 %define api.pure full
 %locations
 %param { class ParserContext *parser }
