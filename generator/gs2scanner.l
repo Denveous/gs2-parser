@@ -1,4 +1,4 @@
-%option nounput noyywrap 8bit  
+%option nounput noyywrap 8bit nounistd
 %option reentrant bison-bridge bison-locations
 %option extra-type="class ParserContext *"
 
