@@ -93,6 +93,9 @@ if(WIN32)
     set(FLEX_GS2Scanner_INPUT ${SCANNER_L})
     set(BISON_GS2Parser_OUTPUTS ${PARSER_CC} ${PARSER_H})
     set(FLEX_GS2Scanner_OUTPUTS ${LEX_CC} ${LEX_H})
+
+    # Mark generated files as GENERATED so CMake won't fail if they don't exist yet at configure time
+    set_source_files_properties(${PARSER_CC} ${PARSER_H} ${LEX_CC} ${LEX_H} PROPERTIES GENERATED TRUE)
 else()
 	find_package(BISON 3.0 REQUIRED)
 	find_package(FLEX REQUIRED)
