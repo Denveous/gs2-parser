@@ -38,7 +38,8 @@ jobs:
           CIBW_ARCHS_WINDOWS: auto64
           CIBW_BUILD_VERBOSITY: 2
           CIBW_BEFORE_ALL_LINUX: yum install -y bison flex
-          CIBW_BEFORE_ALL_MACOS: brew install bison flex && echo "$(/opt/homebrew/bin/brew --prefix bison)/bin" >> $GITHUB_PATH
+          CIBW_BEFORE_ALL_MACOS: brew install bison flex
+          CIBW_ENVIRONMENT_MACOS: PATH="/opt/homebrew/opt/bison/bin:/opt/homebrew/opt/flex/bin:$PATH"
           CIBW_BEFORE_ALL_WINDOWS: C:\msys64\usr\bin\bash -lc "pacman -Sy --noconfirm bison flex && cp C:/msys64/usr/bin/bison.exe C:/msys64/usr/bin/flex.exe C:/Windows/System32/"
           CIBW_BEFORE_BUILD: pip install pybind11
           CIBW_CONFIGURE_SETTINGS: CMake.args="-DBUILD_PYTHON=ON"
