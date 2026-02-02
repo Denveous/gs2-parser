@@ -93,9 +93,6 @@ if(WIN32)
     set(FLEX_GS2Scanner_INPUT ${SCANNER_L})
     set(BISON_GS2Parser_OUTPUTS ${PARSER_CC} ${PARSER_H})
     set(FLEX_GS2Scanner_OUTPUTS ${LEX_CC} ${LEX_H})
-
-    # Mark generated files as GENERATED so CMake won't fail if they don't exist yet at configure time
-    set_source_files_properties(${PARSER_CC} ${PARSER_H} ${LEX_CC} ${LEX_H} PROPERTIES GENERATED TRUE)
 else()
 	find_package(BISON 3.0 REQUIRED)
 	find_package(FLEX REQUIRED)
@@ -108,6 +105,33 @@ include_directories(
 	${CMAKE_CURRENT_BINARY_DIR}
 	src
 )
+
+# -- BEGIN GENERATED FILE HANDLING --
+# Collect any generated file variables and mark headers as GENERATED so CMake
+# won't require them to exist at configure time. Also extract generated .c/.cc/.cpp files
+# to add to the source list.
+set(GENERATED_C_SOURCES)
+
+set(_gen_list)
+if(DEFINED BISON_GS2Parser_OUTPUTS)
+    list(APPEND _gen_list ${BISON_GS2Parser_OUTPUTS})
+endif()
+if(DEFINED FLEX_GS2Scanner_OUTPUTS)
+    list(APPEND _gen_list ${FLEX_GS2Scanner_OUTPUTS})
+endif()
+
+foreach(_f IN LISTS _gen_list)
+    # Mark headers as GENERATED (so missing headers don't break configure)
+    if(_f MATCHES "\\.h$" OR _f MATCHES "\\.hh$")
+        set_source_files_properties(${_f} PROPERTIES GENERATED TRUE)
+    endif()
+
+    # Add only generated C/C++ source files to final sources list
+    if(_f MATCHES "\\.c$" OR _f MATCHES "\\.cc$" OR _f MATCHES "\\.cpp$" OR _f MATCHES "\\.cxx$")
+        list(APPEND GENERATED_C_SOURCES ${_f})
+    endif()
+endforeach()
+# -- END GENERATED FILE HANDLING --
 
 set(SOURCES_ALL
 	src/ast/ast.cpp
@@ -140,8 +164,7 @@ set(SOURCES_ALL
 
 	${BISON_GS2Parser_INPUT}
 	${FLEX_GS2Scanner_INPUT}
-	${BISON_GS2Parser_OUTPUTS}
-	${FLEX_GS2Scanner_OUTPUTS})
+	${GENERATED_C_SOURCES})
 
 add_subdirectory(${PROJECT_SOURCE_DIR}/dependencies/fmtlib EXCLUDE_FROM_ALL)
 
