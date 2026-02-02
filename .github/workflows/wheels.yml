@@ -54,7 +54,7 @@ jobs:
     name: Publish to PyPI
     needs: [build_wheels]
     runs-on: ubuntu-latest
-    if: github.event_name == 'release' && github.event.action == 'published'
+    if: (github.event_name == 'release' && github.event.action == 'published') || github.event_name == 'workflow_dispatch'
     permissions:
       id-token: write
 
