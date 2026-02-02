@@ -45,23 +45,28 @@ if(WIN32)
 	# Manually run bison and flex since FindBison/FindFLEX might not be available
 	# Generate parser
 	execute_process(
-		COMMAND ${WIN_BISON} -d ${CMAKE_CURRENT_SOURCE_DIR}/generator/gs2parser.y
-		-Wno-all
-		OUTPUT_FILE ${CMAKE_CURRENT_BINARY_DIR}/gs2parser.tab.cc
-		ERROR_VARIABLE BISON_ERROR
+		COMMAND ${WIN_BISON}
+		-d
+		${CMAKE_CURRENT_SOURCE_DIR}/generator/gs2parser.y
+		-o${CMAKE_CURRENT_BINARY_DIR}/gs2parser.tab.cc
+		WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 	)
+
+	# Copy .hh to .h for compatibility
 	execute_process(
-		COMMAND ${CMAKE_COMMAND} -E copy_if_different
+		COMMAND ${CMAKE_COMMAND} -E copy
 		${CMAKE_CURRENT_BINARY_DIR}/gs2parser.tab.hh
 		${CMAKE_CURRENT_BINARY_DIR}/gs2parser.tab.h
 	)
 
 	# Generate scanner
 	execute_process(
-		COMMAND ${WIN_FLEX} --wincompat
+		COMMAND ${WIN_FLEX}
+		--wincompat
 		-o${CMAKE_CURRENT_BINARY_DIR}/lex.yy.cc
 		--header-file=${CMAKE_CURRENT_BINARY_DIR}/lex.yy.h
 		${CMAKE_CURRENT_SOURCE_DIR}/generator/gs2scanner.l
+		WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 	)
 
 	# Set source files for Windows
