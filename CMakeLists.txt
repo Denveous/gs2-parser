@@ -69,7 +69,7 @@ if(WIN32)
     # Generate parser: produce .cc and (if produced) .hh, then copy .hh -> .h if present
     add_custom_command(
       OUTPUT ${PARSER_CC} ${PARSER_H}
-      COMMAND ${BISON_EXECUTABLE} -d -o ${PARSER_CC} ${PARSER_Y}
+      COMMAND ${CMAKE_COMMAND} -E env ${BISON_EXECUTABLE} -d -o ${PARSER_CC} ${PARSER_Y}
       # conditional copy on Windows using cmd; if hh was produced copy to .h
       COMMAND ${CMAKE_COMMAND} -E echo "Running win_bison..."
       COMMAND cmd /c "if exist \"${PARSER_HH}\" copy /Y \"${PARSER_HH}\" \"${PARSER_H}\" >nul 2>&1 || echo No .hh produced, skipping copy."
@@ -81,7 +81,7 @@ if(WIN32)
     # Generate scanner
     add_custom_command(
       OUTPUT ${LEX_CC} ${LEX_H}
-      COMMAND ${FLEX_EXECUTABLE} --wincompat -o${LEX_CC} --header-file=${LEX_H} ${SCANNER_L}
+      COMMAND ${FLEX_EXECUTABLE} ${FLEX_FLAGS} -o${LEX_CC} --header-file=${LEX_H} ${SCANNER_L}
       DEPENDS ${SCANNER_L}
       WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
       COMMENT "Generating scanner from ${SCANNER_L}"
