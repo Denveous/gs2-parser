@@ -32,48 +32,67 @@ endif()
 
 # Windows: use win_flex/win_bison from chocolatey (do NOT build winflexbison submodule)
 if(WIN32)
-	find_program(WIN_FLEX win_flex)
-	find_program(WIN_BISON win_bison)
-	if(NOT WIN_FLEX OR NOT WIN_BISON)
-		message(FATAL_ERROR "Windows builds require win_flex and win_bison. Install with: choco install winflexbison")
-	endif()
-	# Set executables directly, then run bison/flex commands manually
-	set(BISON_EXECUTABLE ${WIN_BISON})
-	set(FLEX_EXECUTABLE ${WIN_FLEX})
-	set(FLEX_FLAGS "--wincompat")
+    find_program(WIN_FLEX win_flex)
+    find_program(WIN_BISON win_bison)
 
-	# Manually run bison and flex since FindBison/FindFLEX might not be available
-	# Generate parser
-	execute_process(
-		COMMAND ${WIN_BISON}
-		-d
-		${CMAKE_CURRENT_SOURCE_DIR}/generator/gs2parser.y
-		-o${CMAKE_CURRENT_BINARY_DIR}/gs2parser.tab.cc
-		WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-	)
+    # fallback to a bundled win_bison/win_flex if present in dependencies
+    if(NOT WIN_BISON AND EXISTS "${PROJECT_SOURCE_DIR}/dependencies/winflexbison/build/win_bison.exe")
+        set(WIN_BISON "${PROJECT_SOURCE_DIR}/dependencies/winflexbison/build/win_bison.exe")
+    endif()
+    if(NOT WIN_FLEX AND EXISTS "${PROJECT_SOURCE_DIR}/dependencies/winflexbison/build/win_flex.exe")
+        set(WIN_FLEX "${PROJECT_SOURCE_DIR}/dependencies/winflexbison/build/win_flex.exe")
+    endif()
 
-	# Copy .hh to .h for compatibility
-	execute_process(
-		COMMAND ${CMAKE_COMMAND} -E copy
-		${CMAKE_CURRENT_BINARY_DIR}/gs2parser.tab.hh
-		${CMAKE_CURRENT_BINARY_DIR}/gs2parser.tab.h
-	)
+    if(NOT WIN_FLEX OR NOT WIN_BISON)
+        message(FATAL_ERROR "Windows builds require win_flex and win_bison. Install with: choco install winflexbison OR provide binaries in dependencies/winflexbison/build/")
+    endif()
 
-	# Generate scanner
-	execute_process(
-		COMMAND ${WIN_FLEX}
-		--wincompat
-		-o${CMAKE_CURRENT_BINARY_DIR}/lex.yy.cc
-		--header-file=${CMAKE_CURRENT_BINARY_DIR}/lex.yy.h
-		${CMAKE_CURRENT_SOURCE_DIR}/generator/gs2scanner.l
-		WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-	)
+    set(BISON_EXECUTABLE ${WIN_BISON})
+    set(FLEX_EXECUTABLE ${WIN_FLEX})
+    set(FLEX_FLAGS "--wincompat")
 
-	# Set source files for Windows
-	set(BISON_GS2Parser_INPUT ${CMAKE_CURRENT_SOURCE_DIR}/generator/gs2parser.y)
-	set(FLEX_GS2Scanner_INPUT ${CMAKE_CURRENT_SOURCE_DIR}/generator/gs2scanner.l)
-	set(BISON_GS2Parser_OUTPUTS ${CMAKE_CURRENT_BINARY_DIR}/gs2parser.tab.cc ${CMAKE_CURRENT_BINARY_DIR}/gs2parser.tab.h)
-	set(FLEX_GS2Scanner_OUTPUTS ${CMAKE_CURRENT_BINARY_DIR}/lex.yy.cc ${CMAKE_CURRENT_BINARY_DIR}/lex.yy.h)
+    set(GENERATOR_DIR ${CMAKE_CURRENT_SOURCE_DIR}/generator)
+    set(GENERATED_DIR ${CMAKE_CURRENT_BINARY_DIR})
+    file(MAKE_DIRECTORY ${GENERATED_DIR})
+
+    set(PARSER_Y ${GENERATOR_DIR}/gs2parser.y)
+    set(SCANNER_L ${GENERATOR_DIR}/gs2scanner.l)
+
+    set(PARSER_CC ${GENERATED_DIR}/gs2parser.tab.cc)
+    set(PARSER_HH ${GENERATED_DIR}/gs2parser.tab.hh)
+    set(PARSER_H  ${GENERATED_DIR}/gs2parser.tab.h)
+    set(LEX_CC    ${GENERATED_DIR}/lex.yy.cc)
+    set(LEX_H     ${GENERATED_DIR}/lex.yy.h)
+
+    # Generate parser: produce .cc and (if produced) .hh, then copy .hh -> .h if present
+    add_custom_command(
+      OUTPUT ${PARSER_CC} ${PARSER_H}
+      COMMAND ${BISON_EXECUTABLE} -d -o ${PARSER_CC} ${PARSER_Y}
+      # conditional copy on Windows using cmd; if hh was produced copy to .h
+      COMMAND ${CMAKE_COMMAND} -E echo "Running win_bison..."
+      COMMAND cmd /c "if exist \"${PARSER_HH}\" copy /Y \"${PARSER_HH}\" \"${PARSER_H}\" >nul 2>&1 || echo No .hh produced, skipping copy."
+      DEPENDS ${PARSER_Y}
+      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+      COMMENT "Generating parser from ${PARSER_Y}"
+    )
+
+    # Generate scanner
+    add_custom_command(
+      OUTPUT ${LEX_CC} ${LEX_H}
+      COMMAND ${FLEX_EXECUTABLE} --wincompat -o${LEX_CC} --header-file=${LEX_H} ${SCANNER_L}
+      DEPENDS ${SCANNER_L}
+      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+      COMMENT "Generating scanner from ${SCANNER_L}"
+    )
+
+    # Top-level target to ensure generated files exist before building targets that use them
+    add_custom_target(gen_flex_bison_files DEPENDS ${PARSER_CC} ${PARSER_H} ${LEX_CC} ${LEX_H})
+
+    # Expose variables used later in SOURCES_ALL
+    set(BISON_GS2Parser_INPUT ${PARSER_Y})
+    set(FLEX_GS2Scanner_INPUT ${SCANNER_L})
+    set(BISON_GS2Parser_OUTPUTS ${PARSER_CC} ${PARSER_H})
+    set(FLEX_GS2Scanner_OUTPUTS ${LEX_CC} ${LEX_H})
 else()
 	find_package(BISON 3.0 REQUIRED)
 	find_package(FLEX REQUIRED)
@@ -146,6 +165,12 @@ set_property(TARGET gs2compiler PROPERTY CXX_STANDARD 20)
 target_link_libraries(gs2test fmt::fmt)
 target_link_libraries(gs2compiler fmt::fmt)
 
+# Add dependencies for Windows to ensure generated files exist
+if(WIN32)
+    add_dependencies(gs2test gen_flex_bison_files)
+    add_dependencies(gs2compiler gen_flex_bison_files)
+endif()
+
 set(GS2COMPILER_INCLUDE_DIRECTORY
 	"${PROJECT_SOURCE_DIR}/include"
 	"${PROJECT_BINARY_DIR}/include"
@@ -163,4 +188,9 @@ if(BUILD_PYTHON)
         LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/gs2compiler
     )
     install(TARGETS gs2compiler_py LIBRARY DESTINATION .)
+
+    # Add dependency for Windows to ensure generated files exist
+    if(WIN32)
+        add_dependencies(gs2compiler_py gen_flex_bison_files)
+    endif()
 endif()
