@@ -66,6 +66,10 @@ if(WIN32)
     set(LEX_CC    ${GENERATED_DIR}/lex.yy.cc)
     set(LEX_H     ${GENERATED_DIR}/lex.yy.h)
 
+    # Set executable variables for consistency with Unix code
+    set(BISON_EXECUTABLE ${WIN_BISON})
+    set(FLEX_EXECUTABLE ${WIN_FLEX})
+
     # Generate parser: produce .cc and (if produced) .hh, then copy .hh -> .h if present
     add_custom_command(
       OUTPUT ${PARSER_CC} ${PARSER_H}
