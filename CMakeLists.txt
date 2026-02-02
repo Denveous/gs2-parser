@@ -44,21 +44,14 @@ if(WIN32)
         find_program(WIN_BISON win_bison)
     endif()
 
-    # fallback to a bundled win_bison/win_flex if present in dependencies
-    if(NOT WIN_BISON AND EXISTS "${PROJECT_SOURCE_DIR}/dependencies/winflexbison/build/win_bison.exe")
-        set(WIN_BISON "${PROJECT_SOURCE_DIR}/dependencies/winflexbison/build/win_bison.exe")
+    # Detect if we're using winflexbison or MSYS2 flex
+    # MSYS2 flex doesn't support --wincompat flag
+    get_filename_component(FLEX_NAME ${WIN_FLEX} NAME_WE)
+    if(FLEX_NAME STREQUAL "win_flex")
+        set(FLEX_FLAGS "--wincompat")
+    else()
+        set(FLEX_FLAGS "")
     endif()
-    if(NOT WIN_FLEX AND EXISTS "${PROJECT_SOURCE_DIR}/dependencies/winflexbison/build/win_flex.exe")
-        set(WIN_FLEX "${PROJECT_SOURCE_DIR}/dependencies/winflexbison/build/win_flex.exe")
-    endif()
-
-    if(NOT WIN_FLEX OR NOT WIN_BISON)
-        message(FATAL_ERROR "Windows builds require win_flex and win_bison. Install with: choco install winflexbison OR provide binaries in dependencies/winflexbison/build/")
-    endif()
-
-    set(BISON_EXECUTABLE ${WIN_BISON})
-    set(FLEX_EXECUTABLE ${WIN_FLEX})
-    set(FLEX_FLAGS "--wincompat")
 
     set(GENERATOR_DIR ${CMAKE_CURRENT_SOURCE_DIR}/generator)
     set(GENERATED_DIR ${CMAKE_CURRENT_BINARY_DIR})
