@@ -79,13 +79,23 @@ if(WIN32)
     )
 
     # Generate scanner
-    add_custom_command(
-      OUTPUT ${LEX_CC} ${LEX_H}
-      COMMAND ${FLEX_EXECUTABLE} ${FLEX_FLAGS} -o${LEX_CC} --header-file=${LEX_H} ${SCANNER_L}
-      DEPENDS ${SCANNER_L}
-      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-      COMMENT "Generating scanner from ${SCANNER_L}"
-    )
+    if(FLEX_FLAGS)
+        add_custom_command(
+          OUTPUT ${LEX_CC} ${LEX_H}
+          COMMAND "${FLEX_EXECUTABLE}" ${FLEX_FLAGS} "-o${LEX_CC}" "--header-file=${LEX_H}" "${SCANNER_L}"
+          DEPENDS ${SCANNER_L}
+          WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+          COMMENT "Generating scanner from ${SCANNER_L}"
+        )
+    else()
+        add_custom_command(
+          OUTPUT ${LEX_CC} ${LEX_H}
+          COMMAND "${FLEX_EXECUTABLE}" "-o" "${LEX_CC}" "--header-file=${LEX_H}" "${SCANNER_L}"
+          DEPENDS ${SCANNER_L}
+          WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+          COMMENT "Generating scanner from ${SCANNER_L}"
+        )
+    endif()
 
     # Top-level target to ensure generated files exist before building targets that use them
     add_custom_target(gen_flex_bison_files DEPENDS ${PARSER_CC} ${PARSER_H} ${LEX_CC} ${LEX_H})
